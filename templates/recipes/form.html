@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}{% if recipe %}Edit Recipe{% else %}Create Recipe{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">
+            {% if recipe %}Edit Recipe{% else %}Create a New Recipe{% endif %}
+        </h1>
+        <p class="mt-2 text-sm text-gray-600">
+            {% if recipe %}Update your recipe details below.{% else %}Fill in the details below to share your recipe with the community.{% endif %}
+        </p>
+    </div>
+
+    <form method="POST" action="{% if recipe %}/recipes/{{ recipe.id }}/edit{% else %}/recipes/create{% endif %}" class="space-y-8 bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+
+        <!-- Title -->
+        <div>
+            <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Recipe Title <span class="text-red-500">*</span></label>
+            <input type="text" id="title" name="title" value="{{ recipe.title if recipe else '' }}" required
+                   class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                   placeholder="e.g., Grandma's Chocolate Chip Cookies">
+        </div>
+
+        <!-- Description -->
+        <div>
+            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea id="description" name="description" rows="3"
+                      class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="A brief description of your recipe...">{{ recipe.description if recipe and recipe.description else '' }}</textarea>
+        </div>
+
+        <!-- Time & Servings Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label for="prep_time_minutes" class="block text-sm font-medium text-gray-700 mb-1">Prep Time (min)</label>
+                <input type="number" id="prep_time_minutes" name="prep_time_minutes" min="0"
+                       value="{{ recipe.prep_time_minutes if recipe and recipe.prep_time_minutes is not none else '' }}"
+                       class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                       placeholder="15">
+            </div>
+            <div>
+                <label for="cook_time_minutes" class="block text-sm font-medium text-gray-700 mb-1">Cook Time (min)</label>
+                <input type="number" id="cook_time_minutes" name="cook_time_minutes" min="0"
+                       value="{{ recipe.cook_time_minutes if recipe and recipe.cook_time_minutes is not none else '' }}"
+                       class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                       placeholder="30">
+            </div>
+            <div>
+                <label for="servings" class="block text-sm font-medium text-gray-700 mb-1">Servings</label>
+                <input type="number" id="servings" name="servings" min="1"
+                       value="{{ recipe.servings if recipe and recipe.servings is not none else '' }}"
+                       class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                       placeholder="4">
+            </div>
+        </div>
+
+        <!-- Difficulty -->
+        <div>
+            <label for="difficulty" class="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
+            <select id="difficulty" name="difficulty"
+                    class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white">
+                <option value="">Select difficulty</option>
+                <option value="easy" {% if recipe and recipe.difficulty == 'easy' %}selected{% endif %}>Easy</option>
+                <option value="medium" {% if recipe and recipe.difficulty == 'medium' %}selected{% endif %}>Medium</option>
+                <option value="hard" {% if recipe and recipe.difficulty == 'hard' %}selected{% endif %}>Hard</option>
+            </select>
+        </div>
+
+        <!-- Tags -->
+        <div>
+            <label for="tags" class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+            <input type="text" id="tags" name="tags"
+                   value="{% if recipe and recipe.tags %}{{ recipe.tags | join(', ') }}{% endif %}"
+                   class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                   placeholder="e.g., vegetarian, quick, dessert (comma-separated)">
+            <p class="mt-1 text-xs text-gray-500">Separate tags with commas</p>
+        </div>
+
+        <!-- Ingredients -->
+        <div>
+            <div class="flex items-center justify-between mb-3">
+                <label class="block text-sm font-medium text-gray-700">Ingredients</label>
+                <button type="button" id="add-ingredient-btn"
+                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-orange-700 bg-orange-100 hover:bg-orange-200 transition-colors duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    Add Ingredient
+                </button>
+            </div>
+            <input type="hidden" id="ingredient_count" name="ingredient_count" value="{% if recipe and recipe.ingredients %}{{ recipe.ingredients | length }}{% else %}1{% endif %}">
+            <div id="ingredients-container" class="space-y-2">
+                {% if recipe and recipe.ingredients %}
+                    {% for ingredient in recipe.ingredients %}
+                    <div class="ingredient-row flex items-center gap-2">
+                        <input type="text" name="ingredient_name_{{ loop.index0 }}" placeholder="Ingredient"
+                               value="{{ ingredient.name }}"
+                               class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>
+                        <input type="text" name="ingredient_quantity_{{ loop.index0 }}" placeholder="Quantity"
+                               value="{{ ingredient.quantity }}"
+                               class="w-28 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        <input type="text" name="ingredient_unit_{{ loop.index0 }}" placeholder="Unit"
+                               value="{{ ingredient.unit if ingredient.unit else '' }}"
+                               class="w-24 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        <button type="button" class="remove-ingredient-btn text-red-500 hover:text-red-700 p-1" title="Remove ingredient">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="ingredient-row flex items-center gap-2">
+                        <input type="text" name="ingredient_name_0" placeholder="Ingredient"
+                               class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>
+                        <input type="text" name="ingredient_quantity_0" placeholder="Quantity"
+                               class="w-28 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        <input type="text" name="ingredient_unit_0" placeholder="Unit"
+                               class="w-24 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                        <button type="button" class="remove-ingredient-btn text-red-500 hover:text-red-700 p-1" title="Remove ingredient">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Steps -->
+        <div>
+            <div class="flex items-center justify-between mb-3">
+                <label class="block text-sm font-medium text-gray-700">Instructions</label>
+                <button type="button" id="add-step-btn"
+                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-orange-700 bg-orange-100 hover:bg-orange-200 transition-colors duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    Add Step
+                </button>
+            </div>
+            <input type="hidden" id="step_count" name="step_count" value="{% if recipe and recipe.steps %}{{ recipe.steps | length }}{% else %}1{% endif %}">
+            <div id="steps-container" class="space-y-2">
+                {% if recipe and recipe.steps %}
+                    {% for step in recipe.steps | sort(attribute='step_number') %}
+                    <div class="step-row flex items-start gap-2">
+                        <span class="step-number inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-700 font-semibold text-sm mt-1 flex-shrink-0">{{ loop.index }}</span>
+                        <textarea name="step_{{ loop.index0 }}" rows="2" placeholder="Describe this step..."
+                                  class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>{{ step.instruction }}</textarea>
+                        <button type="button" class="remove-step-btn text-red-500 hover:text-red-700 p-1 mt-1" title="Remove step">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="step-row flex items-start gap-2">
+                        <span class="step-number inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-700 font-semibold text-sm mt-1 flex-shrink-0">1</span>
+                        <textarea name="step_0" rows="2" placeholder="Describe this step..."
+                                  class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required></textarea>
+                        <button type="button" class="remove-step-btn text-red-500 hover:text-red-700 p-1 mt-1" title="Remove step">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+            <a href="{% if recipe %}/recipes/{{ recipe.id }}{% else %}/recipes{% endif %}"
+               class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200">
+                Cancel
+            </a>
+            <button type="submit"
+                    class="px-6 py-2 text-sm font-medium text-white bg-brand-600 rounded-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-colors duration-200 shadow-sm">
+                {% if recipe %}Update Recipe{% else %}Create Recipe{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/app.js"></script>
+{% endblock %}

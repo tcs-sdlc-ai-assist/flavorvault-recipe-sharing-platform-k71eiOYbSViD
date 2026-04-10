@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FlavorVault{% endblock %} | FlavorVault</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fef7ee',
+                            100: '#fdedd3',
+                            200: '#f9d7a5',
+                            300: '#f5ba6d',
+                            400: '#f09333',
+                            500: '#ec7a12',
+                            600: '#dd5f08',
+                            700: '#b74709',
+                            800: '#92380e',
+                            900: '#76300f',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body class="h-full flex flex-col min-h-screen">
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex-shrink-0 flex items-center">
+                        <span class="text-2xl font-bold text-brand-600">🍽️ FlavorVault</span>
+                    </a>
+                    <div class="hidden md:ml-8 md:flex md:space-x-4">
+                        <a href="/recipes" class="text-gray-700 hover:text-brand-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                            Recipes
+                        </a>
+                        <a href="/recipes/explore" class="text-gray-700 hover:text-brand-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                            Explore
+                        </a>
+                        {% if user %}
+                        <a href="/recipes/create" class="text-gray-700 hover:text-brand-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                            Add Recipe
+                        </a>
+                        <a href="/collections" class="text-gray-700 hover:text-brand-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                            My Collections
+                        </a>
+                        {% endif %}
+                        {% if user and user.role == 'admin' %}
+                        <a href="/admin" class="text-gray-700 hover:text-brand-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                            Admin
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="hidden md:flex md:items-center md:space-x-3">
+                    {% if user %}
+                    <div class="relative" id="user-dropdown-container">
+                        <button type="button" id="user-menu-button" class="flex items-center space-x-2 text-gray-700 hover:text-brand-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2">
+                            <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-brand-100 text-brand-700 font-semibold text-sm">
+                                {{ user.username[0]|upper if user.username else 'U' }}
+                            </span>
+                            <span>{{ user.username }}</span>
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div id="user-dropdown-menu" class="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150">
+                                    My Profile
+                                </a>
+                                <a href="/recipes/mine" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150">
+                                    My Recipes
+                                </a>
+                                <a href="/favorites" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150">
+                                    Favorites
+                                </a>
+                                <div class="border-t border-gray-100"></div>
+                                <form method="POST" action="/auth/logout">
+                                    <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150">
+                                        Sign Out
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <a href="/auth/login" class="text-gray-700 hover:text-brand-600 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                        Sign In
+                    </a>
+                    <a href="/auth/register" class="bg-brand-600 text-white hover:bg-brand-700 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
+                        Sign Up
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center md:hidden">
+                    <button type="button" id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 transition-colors duration-200">
+                        <span class="sr-only">Open main menu</span>
+                        <svg id="mobile-menu-icon-open" class="block h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                        <svg id="mobile-menu-icon-close" class="hidden h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden border-t border-gray-200">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="/recipes" class="block text-gray-700 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200">
+                    Recipes
+                </a>
+                <a href="/recipes/explore" class="block text-gray-700 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200">
+                    Explore
+                </a>
+                {% if user %}
+                <a href="/recipes/create" class="block text-gray-700 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200">
+                    Add Recipe
+                </a>
+                <a href="/collections" class="block text-gray-700 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200">
+                    My Collections
+                </a>
+                {% endif %}
+                {% if user and user.role == 'admin' %}
+                <a href="/admin" class="block text-gray-700 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200">
+                    Admin
+                </a>
+                {% endif %}
+            </div>
+            <div class="border-t border-gray-200 px-2 pt-3 pb-3">
+                {% if user %}
+                <div class="flex items-center px-3 py-2">
+                    <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-brand-100 text-brand-700 font-semibold">
+                        {{ user.username[0]|upper if user.username else 'U' }}
+                    </span>
+                    <div class="ml-3">
+                        <div class="text-base font-medium text-gray-800">{{ user.username }}</div>
+                        <div class="text-sm text-gray-500">{{ user.email }}</div>
+                    </div>
+                </div>
+                <div class="mt-2 space-y-1">
+                    <a href="/profile" class="block text-gray-700 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200">
+                        My Profile
+                    </a>
+                    <a href="/recipes/mine" class="block text-gray-700 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200">
+                        My Recipes
+                    </a>
+                    <a href="/favorites" class="block text-gray-700 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200">
+                        Favorites
+                    </a>
+                    <form method="POST" action="/auth/logout">
+                        <button type="submit" class="block w-full text-left text-red-600 hover:bg-red-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200">
+                            Sign Out
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <div class="space-y-1">
+                    <a href="/auth/login" class="block text-gray-700 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200">
+                        Sign In
+                    </a>
+                    <a href="/auth/register" class="block text-brand-600 hover:text-brand-700 hover:bg-brand-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200">
+                        Sign Up
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {% if flash_messages %}
+            <div class="mb-6 space-y-3">
+                {% for message in flash_messages %}
+                <div class="flash-message rounded-md p-4 {% if message.type == 'success' %}bg-green-50 border border-green-200{% elif message.type == 'error' %}bg-red-50 border border-red-200{% elif message.type == 'warning' %}bg-yellow-50 border border-yellow-200{% else %}bg-blue-50 border border-blue-200{% endif %}" role="alert">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            {% if message.type == 'success' %}
+                            <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            {% elif message.type == 'error' %}
+                            <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                            </svg>
+                            {% elif message.type == 'warning' %}
+                            <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {% else %}
+                            <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            {% endif %}
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <p class="text-sm font-medium {% if message.type == 'success' %}text-green-800{% elif message.type == 'error' %}text-red-800{% elif message.type == 'warning' %}text-yellow-800{% else %}text-blue-800{% endif %}">
+                                {{ message.text }}
+                            </p>
+                        </div>
+                        <div class="ml-auto pl-3">
+                            <button type="button" onclick="this.closest('.flash-message').remove()" class="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 {% if message.type == 'success' %}text-green-500 hover:bg-green-100 focus:ring-green-600{% elif message.type == 'error' %}text-red-500 hover:bg-red-100 focus:ring-red-600{% elif message.type == 'warning' %}text-yellow-500 hover:bg-yellow-100 focus:ring-yellow-600{% else %}text-blue-500 hover:bg-blue-100 focus:ring-blue-600{% endif %} transition-colors duration-150">
+                                <span class="sr-only">Dismiss</span>
+                                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="md:flex md:items-center md:justify-between">
+                <div class="flex justify-center md:justify-start space-x-6">
+                    <a href="/about" class="text-gray-400 hover:text-gray-500 text-sm transition-colors duration-200">
+                        About
+                    </a>
+                    <a href="/privacy" class="text-gray-400 hover:text-gray-500 text-sm transition-colors duration-200">
+                        Privacy
+                    </a>
+                    <a href="/terms" class="text-gray-400 hover:text-gray-500 text-sm transition-colors duration-200">
+                        Terms
+                    </a>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <p class="text-center md:text-right text-sm text-gray-400">
+                        &copy; 2024 FlavorVault. All rights reserved.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileMenuIconOpen = document.getElementById('mobile-menu-icon-open');
+            const mobileMenuIconClose = document.getElementById('mobile-menu-icon-close');
+
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', function() {
+                    const isOpen = !mobileMenu.classList.contains('hidden');
+                    mobileMenu.classList.toggle('hidden');
+                    mobileMenuIconOpen.classList.toggle('hidden', !isOpen);
+                    mobileMenuIconOpen.classList.toggle('block', isOpen);
+                    mobileMenuIconClose.classList.toggle('hidden', isOpen);
+                    mobileMenuIconClose.classList.toggle('block', !isOpen);
+                });
+            }
+
+            // User dropdown toggle
+            const userMenuButton = document.getElementById('user-menu-button');
+            const userDropdownMenu = document.getElementById('user-dropdown-menu');
+
+            if (userMenuButton && userDropdownMenu) {
+                userMenuButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    userDropdownMenu.classList.toggle('hidden');
+                });
+
+                document.addEventListener('click', function(e) {
+                    const container = document.getElementById('user-dropdown-container');
+                    if (container && !container.contains(e.target)) {
+                        userDropdownMenu.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Auto-dismiss flash messages after 5 seconds
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(msg) {
+                setTimeout(function() {
+                    msg.style.transition = 'opacity 0.3s ease-out';
+                    msg.style.opacity = '0';
+                    setTimeout(function() {
+                        msg.remove();
+                    }, 300);
+                }, 5000);
+            });
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

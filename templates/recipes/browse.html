@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Recipes{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Browse Recipes</h1>
+    <p class="text-gray-600">Discover delicious recipes from our community</p>
+</div>
+
+<!-- Search and Filters -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+    <form method="GET" action="/recipes" class="space-y-4">
+        <!-- Search Bar -->
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1 relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <input type="text" name="q" value="{{ search_query or '' }}" placeholder="Search recipes by title or description..."
+                       class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+            </div>
+            <div class="flex gap-2">
+                <select name="sort" class="block w-full sm:w-44 border border-gray-300 rounded-md text-sm py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white">
+                    <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
+                    <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+                    <option value="rating" {% if sort == 'rating' %}selected{% endif %}>Highest Rated</option>
+                    <option value="popular" {% if sort == 'popular' %}selected{% endif %}>Most Popular</option>
+                </select>
+                <button type="submit" class="bg-brand-600 text-white hover:bg-brand-700 px-5 py-2.5 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm whitespace-nowrap">
+                    Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Difficulty Filter -->
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-gray-700">Difficulty:</span>
+            <a href="/recipes?q={{ search_query or '' }}&sort={{ sort or 'newest' }}{% for t in selected_tags %}&tag={{ t }}{% endfor %}"
+               class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {% if not selected_difficulty %}bg-brand-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                All
+            </a>
+            {% for level in ['easy', 'medium', 'hard'] %}
+            <a href="/recipes?q={{ search_query or '' }}&sort={{ sort or 'newest' }}&difficulty={{ level }}{% for t in selected_tags %}&tag={{ t }}{% endfor %}"
+               class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {% if selected_difficulty == level %}bg-brand-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                {{ level|capitalize }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- Tag Filter Pills -->
+        {% if tags and tags|length > 0 %}
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-gray-700">Tags:</span>
+            {% for tag in tags %}
+            <a href="/recipes?q={{ search_query or '' }}&sort={{ sort or 'newest' }}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% for t in selected_tags %}{% if t != tag.name %}&tag={{ t }}{% endif %}{% endfor %}{% if tag.name not in selected_tags %}&tag={{ tag.name }}{% endif %}"
+               class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 {% if tag.name in selected_tags %}bg-brand-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                {{ tag.name }}
+                {% if tag.name in selected_tags %}
+                <svg class="ml-1 h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Results Count -->
+{% if recipes and recipes|length > 0 %}
+<div class="flex items-center justify-between mb-4">
+    <p class="text-sm text-gray-600">
+        Showing <span class="font-medium">{{ recipes|length }}</span>
+        {% if total_count is defined and total_count is not none %}
+        of <span class="font-medium">{{ total_count }}</span>
+        {% endif %}
+        recipe{{ 's' if recipes|length != 1 else '' }}
+        {% if search_query %}
+        for "<span class="font-medium">{{ search_query }}</span>"
+        {% endif %}
+    </p>
+</div>
+{% endif %}
+
+<!-- Recipe Card Grid -->
+{% if recipes and recipes|length > 0 %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    {% for recipe in recipes %}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 flex flex-col">
+        <!-- Card Body -->
+        <div class="p-5 flex-1 flex flex-col">
+            <!-- Title -->
+            <div class="flex items-start justify-between gap-2 mb-2">
+                <a href="/recipes/{{ recipe.id }}" class="text-lg font-semibold text-gray-900 hover:text-brand-600 transition-colors duration-200 line-clamp-2">
+                    {{ recipe.title }}
+                </a>
+                {% if user %}
+                <button type="button"
+                        class="favorite-btn flex-shrink-0 p-1 rounded-full transition-colors duration-200 {% if recipe.id in favorited_recipe_ids %}text-red-500{% else %}text-gray-400{% endif %} hover:text-red-500"
+                        data-recipe-id="{{ recipe.id }}"
+                        title="{% if recipe.id in favorited_recipe_ids %}Remove from favorites{% else %}Add to favorites{% endif %}">
+                    <svg class="heart-icon h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                         fill="{% if recipe.id in favorited_recipe_ids %}currentColor{% else %}none{% endif %}"
+                         stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                    </svg>
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Description Excerpt -->
+            {% if recipe.description %}
+            <p class="text-sm text-gray-600 mb-3 line-clamp-2">{{ recipe.description }}</p>
+            {% else %}
+            <p class="text-sm text-gray-400 italic mb-3">No description</p>
+            {% endif %}
+
+            <!-- Metadata Row -->
+            <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-3">
+                {% if recipe.prep_time_minutes is not none %}
+                <span class="inline-flex items-center gap-1">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Prep: {{ recipe.prep_time_minutes }}m
+                </span>
+                {% endif %}
+                {% if recipe.cook_time_minutes is not none %}
+                <span class="inline-flex items-center gap-1">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                    </svg>
+                    Cook: {{ recipe.cook_time_minutes }}m
+                </span>
+                {% endif %}
+                {% if recipe.servings is not none %}
+                <span class="inline-flex items-center gap-1">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    {{ recipe.servings }} serving{{ 's' if recipe.servings != 1 else '' }}
+                </span>
+                {% endif %}
+                {% if recipe.difficulty %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                    {% if recipe.difficulty == 'easy' %}bg-green-100 text-green-700
+                    {% elif recipe.difficulty == 'medium' %}bg-yellow-100 text-yellow-700
+                    {% elif recipe.difficulty == 'hard' %}bg-red-100 text-red-700
+                    {% endif %}">
+                    {{ recipe.difficulty|capitalize }}
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Rating Stars and Review Count -->
+            <div class="flex items-center gap-2 mb-3">
+                <div class="flex items-center">
+                    {% set avg = recipe.avg_rating if recipe.avg_rating else 0 %}
+                    {% for i in range(1, 6) %}
+                    <svg class="h-4 w-4 {% if i <= avg %}text-yellow-400{% elif i - 1 < avg and avg < i %}text-yellow-400{% else %}text-gray-300{% endif %}" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                    {% endfor %}
+                </div>
+                <span class="text-xs text-gray-500">
+                    {% if recipe.avg_rating %}{{ "%.1f"|format(recipe.avg_rating) }}{% else %}0.0{% endif %}
+                    ({{ recipe.review_count or 0 }} review{{ 's' if (recipe.review_count or 0) != 1 else '' }})
+                </span>
+            </div>
+
+            <!-- Tags -->
+            {% if recipe.tags and recipe.tags|length > 0 %}
+            <div class="flex flex-wrap gap-1.5 mt-auto">
+                {% for tag in recipe.tags[:4] %}
+                <a href="/recipes?tag={{ tag }}" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors duration-200">
+                    {{ tag }}
+                </a>
+                {% endfor %}
+                {% if recipe.tags|length > 4 %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                    +{{ recipe.tags|length - 4 }} more
+                </span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Card Footer -->
+        <div class="px-5 py-3 bg-gray-50 border-t border-gray-100">
+            <a href="/recipes/{{ recipe.id }}" class="text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors duration-200">
+                View Recipe →
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages is defined and total_pages > 1 %}
+<nav class="flex items-center justify-center space-x-1 mb-8" aria-label="Pagination">
+    <!-- Previous Button -->
+    {% if current_page > 1 %}
+    <a href="/recipes?page={{ current_page - 1 }}&q={{ search_query or '' }}&sort={{ sort or 'newest' }}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% for t in selected_tags %}&tag={{ t }}{% endfor %}"
+       class="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors duration-200">
+        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Previous
+    </a>
+    {% else %}
+    <span class="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed">
+        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Previous
+    </span>
+    {% endif %}
+
+    <!-- Page Numbers -->
+    {% set start_page = [1, current_page - 2]|max %}
+    {% set end_page = [total_pages, current_page + 2]|min %}
+
+    {% if start_page > 1 %}
+    <a href="/recipes?page=1&q={{ search_query or '' }}&sort={{ sort or 'newest' }}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% for t in selected_tags %}&tag={{ t }}{% endfor %}"
+       class="inline-flex items-center px-3.5 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors duration-200">
+        1
+    </a>
+    {% if start_page > 2 %}
+    <span class="inline-flex items-center px-2 py-2 text-sm text-gray-500">…</span>
+    {% endif %}
+    {% endif %}
+
+    {% for page_num in range(start_page, end_page + 1) %}
+    {% if page_num == current_page %}
+    <span class="inline-flex items-center px-3.5 py-2 rounded-md text-sm font-medium text-white bg-brand-600 border border-brand-600">
+        {{ page_num }}
+    </span>
+    {% else %}
+    <a href="/recipes?page={{ page_num }}&q={{ search_query or '' }}&sort={{ sort or 'newest' }}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% for t in selected_tags %}&tag={{ t }}{% endfor %}"
+       class="inline-flex items-center px-3.5 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors duration-200">
+        {{ page_num }}
+    </a>
+    {% endif %}
+    {% endfor %}
+
+    {% if end_page < total_pages %}
+    {% if end_page < total_pages - 1 %}
+    <span class="inline-flex items-center px-2 py-2 text-sm text-gray-500">…</span>
+    {% endif %}
+    <a href="/recipes?page={{ total_pages }}&q={{ search_query or '' }}&sort={{ sort or 'newest' }}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% for t in selected_tags %}&tag={{ t }}{% endfor %}"
+       class="inline-flex items-center px-3.5 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors duration-200">
+        {{ total_pages }}
+    </a>
+    {% endif %}
+
+    <!-- Next Button -->
+    {% if current_page < total_pages %}
+    <a href="/recipes?page={{ current_page + 1 }}&q={{ search_query or '' }}&sort={{ sort or 'newest' }}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% for t in selected_tags %}&tag={{ t }}{% endfor %}"
+       class="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors duration-200">
+        Next
+        <svg class="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+    </a>
+    {% else %}
+    <span class="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed">
+        Next
+        <svg class="h-4 w-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+    </span>
+    {% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<!-- Empty State -->
+<div class="text-center py-16">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+        <svg class="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+        </svg>
+    </div>
+    <h3 class="text-lg font-medium text-gray-900 mb-1">No recipes found</h3>
+    <p class="text-gray-500 mb-6 max-w-md mx-auto">
+        {% if search_query %}
+        We couldn't find any recipes matching "<span class="font-medium">{{ search_query }}</span>". Try adjusting your search or filters.
+        {% else %}
+        There are no recipes to display yet. Be the first to share a recipe!
+        {% endif %}
+    </p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        {% if search_query or selected_tags or selected_difficulty %}
+        <a href="/recipes" class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors duration-200 shadow-sm">
+            Clear Filters
+        </a>
+        {% endif %}
+        {% if user %}
+        <a href="/recipes/create" class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 transition-colors duration-200 shadow-sm">
+            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Create Recipe
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/app.js"></script>
+{% endblock %}
